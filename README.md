@@ -1,29 +1,31 @@
 # ISLogoDetector
-Tensorflow Project to detect specific Logos
+This trained tensorflow model allows you to detect logos. It does so in a folder full of images. The input consists of a folder which contains all sorts of images (jpg, png and certain bmp/gifs supported) and generates a CSV file with the hash-values (MD5) and the score of the images where the system detected one or more logos. However, with this model you can also enable real-time detection via webcams, for instance.
+
+Data structure:
+- Script
+- Model
+- Config File
 
 Dependencies:
 - Installed Tensorflow with ObjectDetection API 
 https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md
 - Python 2.7 (including Numpy, ConfigParser, MatplotLib, PIL)
 
-
-Content:
-ISLogoDetectorModel3 - Directory containing the trained, frozen TF model
-- frozen_inference_graph.bp = Frozen Model
-- is_label_map.pbtxt = List of labels to be assigned (only 1 in this case)
-- model.ckpt = Checkpoint
-
-ISLogoDetectorScript - Directory containing the script and the config file
-- config.txt = Textfile to configure paths of various required locations (images, model, output)
-- ISLogoDetector.py = Python file to be executed (without any flags)
-
-
 Usage:
-Place your image files into a folder (flat structure) and configure the config.txt file accordingly.
-Run the python script and wait for the resulting "Detection_Results.csv" to be dropped at the location you specified.
-Output are csv values (hash,score).
+1) Make sure your Tensorflow Research directory (tensorflow/models/research) is added to pythonpath:
+export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim
 
+2) Export the relevant images to a directory
 
-In order to train your own (or this model further) please see
-xxxx
+3) Configure the settings within config.txt:
+	MODELPATH → Path to the ISLogoDetectorModel directory (see releases)
+	PATH_TO_OBJECT_DETECTION_DIR → Folder in which object_detection resides (usually tensorflow/models/research)
+	PATH_TO_TEST_IMAGES_DIR → Folder in which the images are stored
+	PATH_TO_RESULTS → Where the output csv shall be stored
 
+4) Execute ISLogoDetector.py in the same folder as the config.txt file:
+./ISLogoDetector.py
+
+For guidance on re-training the model, or to create a fully new tensorflow model, please see those various excellent postings or contact us directly:
+https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-1-selecting-a-model-a02b6aabe39e
+https://gist.github.com/douglasrizzo/c70e186678f126f1b9005ca83d8bd2ce
