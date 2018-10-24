@@ -26,5 +26,7 @@ This trained tensorflow model allows you to detect logos. It does so in a folder
 `./ISLogoDetector.py`
 
 For guidance on re-training the model, or to create a fully new tensorflow model, please see those various excellent postings or contact us directly: 
+
 [Step by step tensorflow object detection api tutorial](https://medium.com/@WuStangDan/step-by-step-tensorflow-object-detection-api-tutorial-part-1-selecting-a-model-a02b6aabe39e)
+
 [TF Object Detection Model Training](https://gist.github.com/douglasrizzo/c70e186678f126f1b9005ca83d8bd2ce)
