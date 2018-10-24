@@ -12,6 +12,7 @@ This trained tensorflow model allows you to detect logos. It does so in a folder
 
 ## Usage:
 1) Make sure your Tensorflow Research directory (tensorflow/models/research) is added to pythonpath:
+
 `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
 
 2) Export the relevant images to a directory
@@ -23,6 +24,7 @@ This trained tensorflow model allows you to detect logos. It does so in a folder
    - PATH_TO_RESULTS → Where the output csv shall be stored
 
 4) Execute ISLogoDetector.py in the same folder as the config.txt file:
+
 `./ISLogoDetector.py`
 
 For guidance on re-training the model, or to create a fully new tensorflow model, please see those various excellent postings or contact us directly: 
