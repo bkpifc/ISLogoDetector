@@ -2,15 +2,18 @@
 This trained tensorflow model allows you to detect logos. It does so in a folder full of images. The input consists of a folder which contains all sorts of images (jpg, png and certain bmp/gifs supported) and generates a CSV file with the hash-values (MD5) and the score of the images where the system detected one or more logos. However, with this model you can also enable real-time detection via webcams, for instance.
 
 ## Data structure:
-- Script
-- Model
-- Config File
+- Script (ISLogoDetector.py)
+- Config File (config.txt)
+- Model (complete frozen TF graph)
+
 
 ## Dependencies:
 - Installed Tensorflow with ObjectDetection API: [Installation Instructions](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md)
 - Python 2.7 (including Numpy, ConfigParser, MatplotLib, PIL)
 
 ## Usage:
+0) Download and extract the [latest release](https://github.com/bkpifc/ISLogoDetector/releases)
+
 1) Make sure your Tensorflow Research directory (tensorflow/models/research) is added to pythonpath:
 
 `export PYTHONPATH=$PYTHONPATH:`pwd`:`pwd`/slim`
