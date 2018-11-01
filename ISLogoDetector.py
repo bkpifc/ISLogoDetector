@@ -1,10 +1,11 @@
-"""
-* !/usr/bin/env python2
-* IS Logo Detector
-* 24.10.2018
-* Lukas Burkhardt
-* Adapted from Tensorflow Object Detection Sample Script
-"""
+#!/usr/bin/env python2
+
+######
+# IS Logo Detector
+# 24.10.2018
+# Lukas Burkhardt
+# Adapted from Tensorflow Object Detection Sample Script
+######
 
 
 import numpy as np
