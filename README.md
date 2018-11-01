@@ -5,7 +5,7 @@ This trained tensorflow model allows you to detect logos. It does so in a folder
 - Repository
   - Script (ISLogoDetector.py)
   - Config File (config.txt)
-- Model via Releases (complete frozen TF graph)
+- Model via Releases (frozen TF graph)
 
 
 ## Dependencies:
