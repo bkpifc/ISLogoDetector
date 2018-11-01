@@ -1,9 +1,9 @@
 """
-!/usr/bin/env python2
-IS Logo Detector
-24.10.2018
-Lukas Burkhardt
-Adapted from Tensorflow Object Detection Sample Script
+* !/usr/bin/env python2
+* IS Logo Detector
+* 24.10.2018
+* Lukas Burkhardt
+* Adapted from Tensorflow Object Detection Sample Script
 """
 
 
@@ -23,11 +23,12 @@ from multiprocessing import Pool
 startTime = datetime.now()
 
 
-"""
-*
-* Model and Variable Preparation
-*
-"""
+######
+#
+# Model and Variable Preparation
+#
+######
+
 # Variable to determine minimum GPU Processer requirement & to disable TF log output
 #os.environ['TF_MIN_GPU_MULTIPROCESSOR_COUNT'] = '5'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -61,49 +62,59 @@ with detection_graph.as_default():
     od_graph_def.ParseFromString(serialized_graph)
     tf.import_graph_def(od_graph_def, name='')
 
-"""
-*
-* Worker function to prepare and reshape the input videos to a Numpy array
-* and to calculate the MD5 hashes of them.
-* The function analyzes as much frames as indicated in the variable "frames_per_video" (Default = 10)
-*
-"""
+
+######
+#
+# Worker function to prepare and reshape the input videos to a Numpy array
+# and to calculate the MD5 hashes of them.
+# The function analyzes as much frames as indicated in the variable "frames_per_video" (Default = 10)
+#
+######
+
 def load_video_into_numpy_array(image_path):
 
     videoframes = []
     # Loading the video via the OpenCV framework
-    vidcap = cv2.VideoCapture(image_path)
-    im_width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    im_height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    try:
+        vidcap = cv2.VideoCapture(image_path)
+        im_width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        im_height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    # Hashing the image once
-    hash_md5 = hashlib.md5()
-    with open(image_path, "rb") as f:
-         for chunk in iter(lambda: f.read(4096), b""):
-             hash_md5.update(chunk)
-    hashvalue = hash_md5.hexdigest()
+        # Hashing the image once
+        hash_md5 = hashlib.md5()
+        with open(image_path, "rb") as f:
+             for chunk in iter(lambda: f.read(4096), b""):
+                 hash_md5.update(chunk)
+        hashvalue = hash_md5.hexdigest()
 
-    # Extracting the frames from the video
-    for percentile in range(0, frames_per_video):
-        vidcap.set(cv2.CAP_PROP_POS_FRAMES, float(float(percentile) / frames_per_video))
-        success, extracted_frame = vidcap.read()
-        extracted_frame = cv2.cvtColor(extracted_frame, cv2.COLOR_BGR2RGB)
-        # And reshape them into a numpy array
-        np_array = np.array(extracted_frame).reshape(
-            (im_height, im_width, 3)).astype(np.uint8)
+        # Extracting the frames from the video
+        for percentile in range(0, frames_per_video):
+            vidcap.set(cv2.CAP_PROP_POS_FRAMES, float(float(percentile) / frames_per_video))
+            success, extracted_frame = vidcap.read()
+            extracted_frame = cv2.cvtColor(extracted_frame, cv2.COLOR_BGR2RGB)
+            # And reshape them into a numpy array
+            np_array = np.array(extracted_frame).reshape(
+                (im_height, im_width, 3)).astype(np.uint8)
 
-        cluster = hashvalue, np_array
-        videoframes.append(cluster)
+            cluster = hashvalue, np_array
+            videoframes.append(cluster)
 
-    return videoframes
+        vidcap.release()
+        return videoframes
+
+    except cv2.error:
+        print "Could not process video: " + str(image_path)
 
 
-"""
-*
-* Worker function to prepare and reshape the input images into a Numpy array
-* and to calculate the MD5 hashes of them.
-*
-"""
+
+
+######
+#
+# Worker function to prepare and reshape the input images into a Numpy array
+# and to calculate the MD5 hashes of them.
+#
+######
+
 def load_image_into_numpy_array(image_path):
 
 
@@ -135,18 +146,18 @@ def load_image_into_numpy_array(image_path):
         return image_path, flag
 
     else:
-        print "Could not transform " + str(image_path)
+        print "Could not open image: " + str(image_path)
 
   except:
-    print "Could not open " + str(image_path)
+    print "General error with file: " + str(image_path)
 
 
-"""
-*
-* Detection within loaded images
-* Creation of file with hashes and detection scores
-*
-"""
+######
+#
+# Detection within loaded images
+# Creation of file with hashes and detection scores
+#
+######
 
 def run_inference_for_multiple_images(images, graph, hashvalues):
 
@@ -195,6 +206,7 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
 
                     hashvalue = hashvalues[index]
 
+                    # Validate against detection limit (default: 90%) and write hash/score if above
                     for j in range(detectionhit):
                         score = output_dict['detection_scores'][j]
                         if (score >= detectionlimit):
@@ -202,7 +214,7 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
                             detectedLogos += 1
                             line = ",".join([hashvalue, scorestring])
                             detectionr.write(line + "\n")
-                    #output_dicts.append(output_dict)
+
                 except tf.errors.InvalidArgumentError:
                     errorcount += 1
                     print "Unable to process file dimensions of file with hash: " + str(hashvalue)
@@ -214,11 +226,11 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
             detectionr.close()
 
 
-"""
-*
-* Main program function which first loads images and then starts detection
-*
-"""
+######
+#
+# Main program function which first loads images and then starts detection
+#
+######
 
 # Print starting time to stdout
 print str(datetime.now()) + ": Process started. Loading images..."
