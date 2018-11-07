@@ -52,7 +52,8 @@ PATH_TO_FROZEN_GRAPH = MODELPATH + '/frozen_inference_graph.pb'
 IMAGENAMES = os.listdir(PATH_TO_TEST_IMAGES_DIR)
 TEST_IMAGE_PATHS = [PATH_TO_TEST_IMAGES_DIR + '/' + i for i in IMAGENAMES]
 sys.path.append(PATH_TO_OBJECT_DETECTION_DIR)
-frames_per_video = 10 #frames to analyze per video file
+frames_per_second = 0.5 #frames to analyze per second of video duration
+
 
 # Loading the frozen model into memory
 detection_graph = tf.Graph()
@@ -68,7 +69,7 @@ with detection_graph.as_default():
 #
 # Worker function to prepare and reshape the input videos to a Numpy array
 # and to calculate the MD5 hashes of them.
-# The function analyzes as much frames as indicated in the variable "frames_per_video" (Default = 10)
+# The function analyzes as much frames as indicated in the variable "frames_per_second" (Default = 0.5)
 #
 ######
 
@@ -80,6 +81,10 @@ def load_video_into_numpy_array(image_path):
         vidcap = cv2.VideoCapture(image_path)
         im_width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
         im_height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        # Calculating frames per second, total frame count and analyze rate
+        fps = int(vidcap.get(cv2.CAP_PROP_FPS))
+        framecount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+        analyze_rate = int(framecount / fps * frames_per_second)
 
         # Hashing the image once
         hash_md5 = hashlib.md5()
@@ -89,8 +94,8 @@ def load_video_into_numpy_array(image_path):
         hashvalue = hash_md5.hexdigest()
 
         # Extracting the frames from the video
-        for percentile in range(0, frames_per_video):
-            vidcap.set(cv2.CAP_PROP_POS_FRAMES, float(float(percentile) / frames_per_video))
+        for percentile in range(0, analyze_rate):
+            vidcap.set(cv2.CAP_PROP_POS_FRAMES, float(float(percentile) / analyze_rate))
             success, extracted_frame = vidcap.read()
             extracted_frame = cv2.cvtColor(extracted_frame, cv2.COLOR_BGR2RGB)
             # And reshape them into a numpy array
@@ -164,7 +169,7 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
 
     # Initiate variables
     detectedLogos = 0
-    processedImages = 0
+
     errorcount = 0
 
     # Create TF Session with loaded graph
@@ -196,7 +201,7 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
             for index, image in enumerate(images):
                 try:
                     #print image
-                    processedImages += 1
+
                     output_dict = sess.run(tensor_dict,
                                            feed_dict={image_tensor: np.expand_dims(image, 0)})
 
@@ -220,7 +225,7 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
                     errorcount += 1
                     print "Unable to process file dimensions of file with hash: " + str(hashvalue)
 
-            return processedImages, detectedLogos, errorcount
+            return detectedLogos, errorcount
 
 
             detectionr.flush()
@@ -263,6 +268,9 @@ if __name__ == '__main__':
             # If not, put it to the final images list
             final_images.append(processed_image)
 
+    # Count the number of images before adding the videoframes
+    number_of_images = len(final_images)
+
     # Multiprocess the video load function on all CPU cores available
     pool = Pool()
     videoframes = pool.map(load_video_into_numpy_array, vidlist)
@@ -284,13 +292,13 @@ if __name__ == '__main__':
 print str(datetime.now()) + ": Loading completed. Detecting..."
 
 # Execute detection
-processedImages, detectedLogos, errorcount = run_inference_for_multiple_images(image_nps, detection_graph, hashvalues)
+detectedLogos, errorcount = run_inference_for_multiple_images(image_nps, detection_graph, hashvalues)
 
 # Print process statistics to stdout
 print "Results: " + configParser.get('regular-config', 'PATH_TO_RESULTS') + "/Detection_Results.csv"
 print "Total Amount of Files: " + str(len(TEST_IMAGE_PATHS))
-print "Processed Images: " + str(processedImages - (len(vidlist) * frames_per_video))
-print "Processed Videos: " + str(len(vidlist))
+print "Processed Images: " + str(number_of_images)
+print "Processed Videos: " + str(len(vidlist)) + " (analyzed " + str(frames_per_second) + " frames per second)"
 print "Detected potential IS Logos: " + str(detectedLogos)
 print "Error during detection: " + str(errorcount)
 print "Processing time: " + str(datetime.now() - startTime)
