@@ -54,6 +54,10 @@ TEST_IMAGE_PATHS = [PATH_TO_TEST_IMAGES_DIR + '/' + i for i in IMAGENAMES]
 sys.path.append(PATH_TO_OBJECT_DETECTION_DIR)
 frames_per_second = 0.5 #frames to analyze per second of video duration
 
+# Creating label map which maps indexes to classes
+label_map = {
+    1:"Islamic State Logo",
+    }
 
 # Loading the frozen model into memory
 detection_graph = tf.Graph()
@@ -161,7 +165,7 @@ def load_image_into_numpy_array(image_path):
 ######
 #
 # Detection within loaded images
-# Creation of file with hashes and detection scores
+# Creation of output file with hashes, detection scores and class
 #
 ######
 
@@ -180,7 +184,7 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
             all_tensor_names = {output.name for op in ops for output in op.outputs}
             tensor_dict = {}
             for key in [
-                 'num_detections', 'detection_scores',
+                 'num_detections', 'detection_scores', 'detection_classes'
             ]:
                tensor_name = key + ':0'
                if tensor_name in all_tensor_names:
@@ -190,7 +194,6 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
             image_tensor = tf.get_default_graph().get_tensor_by_name('image_tensor:0')
 
             # Prepare results file with headers
-            output_dicts = []
             detectionr = open(PATH_TO_RESULTS + "/Detection_Results.csv", 'w')
             detectionr.write('hash,score\n')
 
@@ -209,16 +212,18 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
                     output_dict['num_detections'] = int(output_dict['num_detections'][0])
                     output_dict['detection_scores'] = output_dict['detection_scores'][0]
                     detectionhit = output_dict['num_detections']
+                    output_dict['detection_classes'] = output_dict['detection_classes'][0]
 
                     hashvalue = hashvalues[index]
 
                     # Validate against detection limit (default: 90%) and write hash/score if above
                     for j in range(detectionhit):
                         score = output_dict['detection_scores'][j]
+                        category = label_map[output_dict['detection_classes'][j]]
                         if (score >= detectionlimit):
                             scorestring = str(score)
                             detectedLogos += 1
-                            line = ",".join([hashvalue, scorestring])
+                            line = ",".join([hashvalue, scorestring, category])
                             detectionr.write(line + "\n")
 
                 except tf.errors.InvalidArgumentError:
