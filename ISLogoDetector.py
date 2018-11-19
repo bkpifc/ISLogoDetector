@@ -88,7 +88,7 @@ def load_video_into_numpy_array(image_path):
         # Calculating frames per second, total frame count and analyze rate
         fps = int(vidcap.get(cv2.CAP_PROP_FPS))
         framecount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-        analyze_rate = int(framecount / fps * frames_per_second)
+        analyze_rate = 10 #int(framecount / fps * frames_per_second)
 
         # Hashing the image once
         hash_md5 = hashlib.md5()
@@ -114,6 +114,8 @@ def load_video_into_numpy_array(image_path):
 
     except cv2.error:
         print "Could not process video: " + str(image_path)
+    except:
+        print "General error processing video: " + str(image_path)
 
 
 
@@ -195,7 +197,7 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
 
             # Prepare results file with headers
             detectionr = open(PATH_TO_RESULTS + "/Detection_Results.csv", 'w')
-            detectionr.write('hash,score\n')
+            detectionr.write('hash,score,category\n')
 
             # Setting the detection limit to 90% - lower values will be discarded
             detectionlimit = 0.9
@@ -203,8 +205,6 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
             # Conduct actual detection within single image
             for index, image in enumerate(images):
                 try:
-                    #print image
-
                     output_dict = sess.run(tensor_dict,
                                            feed_dict={image_tensor: np.expand_dims(image, 0)})
 
