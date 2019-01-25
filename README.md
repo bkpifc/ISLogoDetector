@@ -10,7 +10,7 @@ This trained tensorflow model allows you to detect logos. It does so in a folder
 
 ## Dependencies:
 - Installed Tensorflow with ObjectDetection API: [Installation Instructions](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/installation.md)
-- Python 2.7 (including Numpy, ConfigParser, MatplotLib, PIL, OpenCV, Magic)
+- Python 3.5 (including Numpy, ConfigParser, PIL, OpenCV, Mimetypes)
 
 ## Usage:
 1) Clone/Download the repository and download the [latest model release](https://github.com/bkpifc/ISLogoDetector/releases)
