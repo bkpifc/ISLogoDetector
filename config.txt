@@ -1,5 +1,5 @@
 [regular-config]
-MODELPATH = /home/b/Programs/ISLogoDetectorModel3
-PATH_TO_OBJECT_DETECTION_DIR = /home/b/Programs/tensorflow/models/research
-PATH_TO_TEST_IMAGES_DIR = /home/b/Programs/Datasets/Medienzudurchsuchen
-PATH_TO_RESULTS = /home/b/Desktop
+MODELPATH = <PATH>
+PATH_TO_OBJECT_DETECTION_DIR = <PATH>
+PATH_TO_TEST_IMAGES_DIR = <PATH>
+PATH_TO_RESULTS = <PATH>
