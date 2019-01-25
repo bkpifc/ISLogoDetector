@@ -1,9 +1,9 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 ######
 # IS Logo Detector
-# 24.10.2018
-# Lukas Burkhardt
+# 25.01.2019
+# LRB
 # Adapted from Tensorflow Object Detection Sample Script
 ######
 
@@ -13,16 +13,16 @@ import os
 import sys
 import tensorflow as tf
 import hashlib
-import ConfigParser
+import configparser
 import cv2
-import magic
+import mimetypes
 from distutils.version import StrictVersion
 from PIL import Image
 from datetime import datetime
 from multiprocessing import Pool
 
-startTime = datetime.now()
 
+startTime = datetime.now()
 
 ######
 #
@@ -39,7 +39,7 @@ if StrictVersion(tf.__version__) < StrictVersion('1.9.0'):
   raise ImportError('Please upgrade your TensorFlow installation to v1.9.* or later!')
 
 # Initiating Config Parsing
-configParser = ConfigParser.RawConfigParser()
+configParser = configparser.RawConfigParser()
 configFilePath = r'config.txt'
 configParser.read(configFilePath)
 
@@ -59,21 +59,61 @@ label_map = {
     1:"Islamic State Logo",
     }
 
-# Loading the frozen model into memory
-detection_graph = tf.Graph()
-with detection_graph.as_default():
-  od_graph_def = tf.GraphDef()
-  with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
-    serialized_graph = fid.read()
-    od_graph_def.ParseFromString(serialized_graph)
-    tf.import_graph_def(od_graph_def, name='')
+
+######
+#
+# Worker function to prepare and reshape the input images into a Numpy array
+# and to calculate the MD5 hashes of them.
+#
+######
+
+def load_image_into_numpy_array(image_path):
+
+
+  try:
+
+    # Open, measure and convert image to RGB channels
+    image = Image.open(image_path)
+    (im_width, im_height) = image.size
+
+    image = image.convert('RGB')
+    np_array = np.array(image.getdata()).reshape(
+        (im_height, im_width, 3)).astype(np.uint8)
+    image.close()
+
+    # Hash the image in byte-chunks of 4096
+    hash_md5 = hashlib.md5()
+    with open(image_path, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    f.close()
+    hashvalue = hash_md5.hexdigest()
+
+    # Return the hash as well as the image array
+    return hashvalue, np_array
+
+
+  # Throw errors to stdout
+  except IOError:
+  # If image file cannot be read, check if it is a video
+    if str(mimetypes.guess_type(image_path)[0])[:5] == 'video':
+        # If so, return a video flag instead of numpy array
+        flag = "VIDEO"
+        return image_path, flag
+
+    else:
+        print("Could not open image: " + str(image_path) + " (" + str(mimetypes.guess_type(image_path)[0]) + ")")
+
+  except:
+    print("General error with file: " + str(image_path) + " (" + str(mimetypes.guess_type(image_path)[0]) + ")")
+
 
 
 ######
 #
 # Worker function to prepare and reshape the input videos to a Numpy array
 # and to calculate the MD5 hashes of them.
-# The function analyzes as much frames as indicated in the variable "frames_per_second" (Default = 0.5)
+# The function analyzes as much frames per second as indicated in the variable "frames_per_second" (Default = 0.5) up to max. 100
 #
 ######
 
@@ -85,16 +125,22 @@ def load_video_into_numpy_array(image_path):
         vidcap = cv2.VideoCapture(image_path)
         im_width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
         im_height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
         # Calculating frames per second, total frame count and analyze rate
         fps = int(vidcap.get(cv2.CAP_PROP_FPS))
         framecount = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-        analyze_rate = 10 #int(framecount / fps * frames_per_second)
+        analyze_rate = int(framecount / fps * frames_per_second)
+        if 0 < analyze_rate < 100:
+            int(analyze_rate)
+        else:
+            analyze_rate = 100 #Limiting maximum frames per video
 
-        # Hashing the image once
+        # Hashing the video once
         hash_md5 = hashlib.md5()
         with open(image_path, "rb") as f:
              for chunk in iter(lambda: f.read(4096), b""):
                  hash_md5.update(chunk)
+        f.close()
         hashvalue = hash_md5.hexdigest()
 
         # Extracting the frames from the video
@@ -113,55 +159,10 @@ def load_video_into_numpy_array(image_path):
         return videoframes
 
     except cv2.error:
-        print "Could not process video: " + str(image_path)
+        print("Could not process video: " + str(image_path))
     except:
-        print "General error processing video: " + str(image_path)
+        print("General error processing video: " + str(image_path))
 
-
-
-
-######
-#
-# Worker function to prepare and reshape the input images into a Numpy array
-# and to calculate the MD5 hashes of them.
-#
-######
-
-def load_image_into_numpy_array(image_path):
-
-
-  try:
-    # Open, measure and convert image to RGB channels
-    image = Image.open(image_path)
-    (im_width, im_height) = image.size
-
-    image = image.convert('RGB')
-    np_array = np.array(image.getdata()).reshape(
-                (im_height, im_width, 3)).astype(np.uint8)
-
-    # Hash the image in byte-chunks of 4096
-    hash_md5 = hashlib.md5()
-    with open(image_path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash_md5.update(chunk)
-    hashvalue = hash_md5.hexdigest()
-
-    return hashvalue, np_array
-
-
-  # Throw errors to stdout
-  except IOError:
-    # If image file cannot be read, check if it is a video
-    if str(magic.from_file(image_path, mime=True))[:5] == 'video':
-        # If so, return a video flag instead of numpy array
-        flag = "VIDEO"
-        return image_path, flag
-
-    else:
-        print "Could not open image: " + str(image_path)
-
-  except:
-    print "General error with file: " + str(image_path)
 
 
 ######
@@ -171,15 +172,21 @@ def load_image_into_numpy_array(image_path):
 #
 ######
 
-def run_inference_for_multiple_images(images, graph, hashvalues):
+def run_inference_for_multiple_images(images, hashvalues):
 
     # Initiate variables
     detectedLogos = 0
-
     errorcount = 0
 
     # Create TF Session with loaded graph
-    with graph.as_default():
+    detection_graph = tf.Graph()
+    with detection_graph.as_default():
+        od_graph_def = tf.GraphDef()
+        with tf.gfile.GFile(PATH_TO_FROZEN_GRAPH, 'rb') as fid:
+            serialized_graph = fid.read()
+            od_graph_def.ParseFromString(serialized_graph)
+            tf.import_graph_def(od_graph_def, name='')
+
         with tf.Session() as sess:
             #Get handles to input and output tensors
             ops = tf.get_default_graph().get_operations()
@@ -205,6 +212,8 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
             # Conduct actual detection within single image
             for index, image in enumerate(images):
                 try:
+                    hashvalue = hashvalues[index]
+
                     output_dict = sess.run(tensor_dict,
                                            feed_dict={image_tensor: np.expand_dims(image, 0)})
 
@@ -214,7 +223,6 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
                     detectionhit = output_dict['num_detections']
                     output_dict['detection_classes'] = output_dict['detection_classes'][0]
 
-                    hashvalue = hashvalues[index]
 
                     # Validate against detection limit (default: 90%) and write hash/score if above
                     for j in range(detectionhit):
@@ -228,13 +236,14 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
 
                 except tf.errors.InvalidArgumentError:
                     errorcount += 1
-                    print "Unable to process file dimensions of file with hash: " + str(hashvalue)
-
-            return detectedLogos, errorcount
+                    print("Unable to process file dimensions of file with hash: " + str(hashvalue))
 
 
             detectionr.flush()
             detectionr.close()
+
+
+            return detectedLogos, errorcount
 
 
 ######
@@ -244,7 +253,7 @@ def run_inference_for_multiple_images(images, graph, hashvalues):
 ######
 
 # Print starting time to stdout
-print str(datetime.now()) + ": Process started. Loading images..."
+print(str(datetime.now()) + ": Process started. Loading images...")
 
 
 if __name__ == '__main__':
@@ -254,11 +263,12 @@ if __name__ == '__main__':
     final_images = []
 
     # Multiprocess the image load function on all CPU cores available
-    pool = Pool()
-    processed_images = pool.map(load_image_into_numpy_array, TEST_IMAGE_PATHS)
+    pool = Pool(maxtasksperchild=100)
+    processed_images = pool.map(load_image_into_numpy_array, TEST_IMAGE_PATHS, chunksize=10)
     pool.close()
     # Synchronize after completion
     pool.join()
+    pool.terminate()
 
     # Clean the result for None types (where image conversion failed)
     processed_images = [x for x in processed_images if x != None]
@@ -273,15 +283,17 @@ if __name__ == '__main__':
             # If not, put it to the final images list
             final_images.append(processed_image)
 
+
     # Count the number of images before adding the videoframes
     number_of_images = len(final_images)
 
     # Multiprocess the video load function on all CPU cores available
-    pool = Pool()
+    pool = Pool(maxtasksperchild=100)
     videoframes = pool.map(load_video_into_numpy_array, vidlist)
     pool.close()
     # Synchronize after completion
     pool.join()
+    pool.terminate()
 
     # Clean the result for None types (where video conversion failed)
     for video in videoframes:
@@ -289,24 +301,25 @@ if __name__ == '__main__':
             final_images.extend(video)
 
 
+
     # Split the result from the loading function into hashes and image arrays
     hashvalues, image_nps = zip(*final_images)
 
 
 # Print starting time of detection to stdout
-print str(datetime.now()) + ": Loading completed. Detecting..."
+print(str(datetime.now()) + ": Loading completed. Detecting...")
 
 # Execute detection
-detectedLogos, errorcount = run_inference_for_multiple_images(image_nps, detection_graph, hashvalues)
+detectedLogos, errorcount = run_inference_for_multiple_images(image_nps, hashvalues)
 
 # Print process statistics to stdout
-print "Results: " + configParser.get('regular-config', 'PATH_TO_RESULTS') + "/Detection_Results.csv"
-print "Total Amount of Files: " + str(len(TEST_IMAGE_PATHS))
-print "Processed Images: " + str(number_of_images)
-print "Processed Videos: " + str(len(vidlist)) + " (analyzed " + str(frames_per_second) + " frames per second)"
-print "Detected potential IS Logos: " + str(detectedLogos)
-print "Error during detection: " + str(errorcount)
-print "Processing time: " + str(datetime.now() - startTime)
+print("Results: " + configParser.get('regular-config', 'PATH_TO_RESULTS') + "/Detection_Results.csv")
+print("Total Amount of Files: " + str(len(TEST_IMAGE_PATHS)))
+print("Processed Images: " + str(number_of_images))
+print("Processed Videos: " + str(len(vidlist)) + " (analyzed " + str(frames_per_second) + " frames per second, up to max. 100)")
+print("Detected potential IS Logos: " + str(detectedLogos))
+print("Error during detection: " + str(errorcount))
+print("Processing time: " + str(datetime.now() - startTime))
 
 
 
